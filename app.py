@@ -5,18 +5,19 @@ import cv2
 import google.generativeai as genai
 from flask_cors import CORS
 
-# Configure the Gemma API
+
 genai.configure(api_key="AIzaSyD1FPKl0lENNaIw8JGtMBzPXopVDIqcab8")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Initialize Flask app
+
 app = Flask(__name__)
 CORS(app)
 
-# Load the saved model
-loaded_model = load_model('stone_cyst_tumor_model.h5')
 
-# Define the class labels
+loaded_model = load_model('stone_cyst_tumor_model.h5')
+loaded_model.compile() 
+
+
 class_labels = ["Cyst", "Normal", "Stone", "Tumor"]
 
 # Function to generate the prevention report using Gemini LLM
@@ -88,35 +89,35 @@ def generate_prevention_report(risk, disease, age):
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Check if an image file was uploaded
+       
         if 'image' not in request.files:
             return jsonify({"error": "No image uploaded."}), 400
         
-        # Read the image file
+       
         image = request.files['image']
         
-        # Save the image temporarily
+        
         image_path = 'uploaded_image.png'
         image.save(image_path)
         
-        # Load the image in grayscale mode
+       
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             return jsonify({"error": "Failed to load image."}), 400
         
-        # Resize and normalize the image
+       
         img_resized = cv2.resize(img, (200, 200))
         img_normalized = img_resized / 255.0
         img_reshaped = img_normalized.reshape(1, 200, 200, 1)
         
-        # Make a prediction
+       
         predictions = loaded_model.predict(img_reshaped)
         
         # Get predicted label
         predicted_class = np.argmax(predictions)
         predicted_label = class_labels[predicted_class]
         
-        # Get the risk score for the predicted class
+        
         risk_score = f"{predictions[0][predicted_class] * 100:.2f}%"
         
         # Generate the prevention report
